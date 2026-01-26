@@ -1,0 +1,15 @@
+# Generated Artifacts
+*.zip
+inventory_offline.html
+
+# Python
+__pycache__/
+*.py[cod]
+
+# System
+.DS_Store
+Thumbs.db
+
+# IDE/Editor
+.vscode/
+.idea/
