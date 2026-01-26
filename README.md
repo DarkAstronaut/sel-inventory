@@ -1,4 +1,4 @@
-# SEL Inventory App
+# SEL Bar Inventory
 
 A lightweight, offline-capable mobile web application for tracking inventory counts across multiple categories.
 
