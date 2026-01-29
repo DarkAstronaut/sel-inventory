@@ -1,7 +1,9 @@
 
 // State
 let counts = {};
+let manualChecks = {};
 const STORAGE_KEY = 'inventory_counts_v1';
+const CHECKS_KEY = 'inventory_checks_v1';
 
 // DOM Elements
 const container = document.getElementById('inventory-container');
@@ -27,15 +29,21 @@ function loadState() {
         if (stored) {
             counts = JSON.parse(stored);
         }
+        const storedChecks = localStorage.getItem(CHECKS_KEY);
+        if (storedChecks) {
+            manualChecks = JSON.parse(storedChecks);
+        }
     } catch (e) {
         console.error("Failed to load state", e);
         counts = {};
+        manualChecks = {};
     }
 }
 
 // Save counts to LocalStorage
 function saveState() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(counts));
+    localStorage.setItem(CHECKS_KEY, JSON.stringify(manualChecks));
 }
 
 // Category Background Colors
@@ -83,15 +91,19 @@ function render() {
         categoryObj.items.forEach((item, itemIdx) => {
             const itemKey = `${categoryObj.category}|${item.name}`;
             const count = counts[itemKey] || 0;
+            const isChecked = manualChecks[itemKey] || false;
+            const isActive = count > 0 || isChecked;
 
             const row = document.createElement('div');
             row.className = 'item-row';
 
-            const hasCountClass = count > 0 ? ' has-count' : '';
+            const activeClass = isActive ? ' is-active' : '';
+            const checkBtnClass = isActive ? ' active' : '';
 
             row.innerHTML = `
-                <div class="item-name${hasCountClass}">${item.name}</div>
+                <div class="item-name${activeClass}">${item.name}</div>
                 <div class="item-controls">
+                    <button class="check-btn${checkBtnClass}" data-key="${itemKey}">✓</button>
                     <button class="qty-btn minus" data-key="${itemKey}">−</button>
                     <span class="item-count">${count}</span>
                     <button class="qty-btn plus" data-key="${itemKey}">+</button>
@@ -113,6 +125,7 @@ function setupEventListeners() {
         clearAllBtn.addEventListener('click', () => {
             if (confirm('Are you sure you want to clear all items?')) {
                 counts = {};
+                manualChecks = {};
                 saveState();
                 render();
                 showToast('All items cleared');
@@ -127,6 +140,36 @@ function setupEventListeners() {
             if (confirm(`Clear all items in ${categoryName}?`)) {
                 clearCategory(categoryName);
             }
+            return;
+        }
+
+        // Check button handler
+        if (e.target.classList.contains('check-btn')) {
+            const key = e.target.dataset.key;
+            manualChecks[key] = !manualChecks[key];
+
+            if (!manualChecks[key]) {
+                delete manualChecks[key]; // Cleanup
+            }
+
+            saveState();
+
+            // Optimistic DOM update
+            const itemRow = e.target.closest('.item-row');
+            const nameEl = itemRow.querySelector('.item-name');
+            const count = counts[key] || 0;
+            const isActive = count > 0 || manualChecks[key];
+
+            if (isActive) {
+                e.target.classList.add('active');
+                nameEl.classList.add('is-active');
+            } else {
+                e.target.classList.remove('active');
+                nameEl.classList.remove('is-active');
+            }
+
+            // Trigger small vibration on mobile
+            if (navigator.vibrate) navigator.vibrate(5);
             return;
         }
 
@@ -151,13 +194,17 @@ function setupEventListeners() {
         const itemRow = btn.closest('.item-row');
         const countSpan = itemRow.querySelector('.item-count');
         const nameEl = itemRow.querySelector('.item-name');
+        const checkBtn = itemRow.querySelector('.check-btn');
 
         countSpan.textContent = counts[key] || 0;
 
-        if ((counts[key] || 0) > 0) {
-            nameEl.classList.add('has-count');
+        const isActive = (counts[key] || 0) > 0 || manualChecks[key];
+        if (isActive) {
+            nameEl.classList.add('is-active');
+            checkBtn.classList.add('active');
         } else {
-            nameEl.classList.remove('has-count');
+            nameEl.classList.remove('is-active');
+            checkBtn.classList.remove('active');
         }
 
         // Trigger small vibration on mobile
@@ -191,6 +238,11 @@ function clearCategory(categoryName) {
             delete counts[key];
         }
     });
+    Object.keys(manualChecks).forEach(key => {
+        if (key.startsWith(prefix)) {
+            delete manualChecks[key];
+        }
+    });
     saveState();
     render();
     showToast(`${categoryName} cleared`);
@@ -206,8 +258,13 @@ function generateMessage() {
         cat.items.forEach(item => {
             const key = `${cat.category}|${item.name}`;
             const count = counts[key] || 0;
+            const isChecked = manualChecks[key] || false;
+
             if (count > 0) {
                 categoryLines.push(`${item.name} - ${count}`);
+                hasItems = true;
+            } else if (isChecked) {
+                categoryLines.push(`Need ${item.name}`);
                 hasItems = true;
             }
         });
