@@ -13,3 +13,7 @@ Thumbs.db
 # IDE/Editor
 .vscode/
 .idea/
+
+# Archive
+bundle.py
+archive/

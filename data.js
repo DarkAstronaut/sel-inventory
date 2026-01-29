@@ -393,11 +393,11 @@ const inventoryData = [
                 "count": 0
             },
             {
-                "name": "Pakola",
+                "name": "Pakola (6 Cans)",
                 "count": 0
             },
             {
-                "name": "Vimto",
+                "name": "Vimto (6 Cans)",
                 "count": 0
             },
             {
@@ -417,7 +417,7 @@ const inventoryData = [
                 "count": 0
             },
             {
-                "name": "Anar",
+                "name": "Anar (Box)",
                 "count": 0
             },
             {
@@ -543,7 +543,7 @@ const inventoryData = [
                 "count": 0
             },
             {
-                "name": "Kulfi",
+                "name": "Kulfi (25 Pcs)",
                 "count": 0
             }
         ]
@@ -552,23 +552,23 @@ const inventoryData = [
         "category": "Cups & Lids",
         "items": [
             {
-                "name": "Paper Coffee Cups",
+                "name": "Paper Coffee Cups (Box)",
                 "count": 0
             },
             {
-                "name": "Paper Coffee Cup Lids",
+                "name": "Paper Coffee Cup Lids (Box)",
                 "count": 0
             },
             {
-                "name": "To Go Cups",
+                "name": "To Go Cups (Box)",
                 "count": 0
             },
             {
-                "name": "To Go Cup Lids",
+                "name": "To Go Cup Lids (Box)",
                 "count": 0
             },
             {
-                "name": "9 oz Cups",
+                "name": "9 oz Cups (Box)",
                 "count": 0
             }
         ]
@@ -589,7 +589,7 @@ const inventoryData = [
                 "count": 0
             },
             {
-                "name": "Meeta Pan",
+                "name": "Meeta Pan (25 Pcs)",
                 "count": 0
             }
         ]
