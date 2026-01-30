@@ -2,8 +2,10 @@
 // State
 let counts = {};
 let manualChecks = {};
+let noStock = {};
 const STORAGE_KEY = 'inventory_counts_v1';
 const CHECKS_KEY = 'inventory_checks_v1';
+const NOSTOCK_KEY = 'inventory_nostock_v1';
 
 // DOM Elements
 const container = document.getElementById('inventory-container');
@@ -33,10 +35,15 @@ function loadState() {
         if (storedChecks) {
             manualChecks = JSON.parse(storedChecks);
         }
+        const storedNoStock = localStorage.getItem(NOSTOCK_KEY);
+        if (storedNoStock) {
+            noStock = JSON.parse(storedNoStock);
+        }
     } catch (e) {
         console.error("Failed to load state", e);
         counts = {};
         manualChecks = {};
+        noStock = {};
     }
 }
 
@@ -44,6 +51,7 @@ function loadState() {
 function saveState() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(counts));
     localStorage.setItem(CHECKS_KEY, JSON.stringify(manualChecks));
+    localStorage.setItem(NOSTOCK_KEY, JSON.stringify(noStock));
 }
 
 // Category Background Colors
@@ -93,12 +101,14 @@ function render() {
             const count = counts[itemKey] || 0;
             const isChecked = manualChecks[itemKey] || false;
             const isActive = count > 0 || isChecked;
+            const isNoStock = noStock[itemKey] || false;
 
             const row = document.createElement('div');
             row.className = 'item-row';
 
             const activeClass = isActive ? ' is-active' : '';
             const checkBtnClass = isActive ? ' active' : '';
+            const noStockBtnClass = isNoStock ? ' active' : '';
 
             row.innerHTML = `
                 <div class="item-name${activeClass}">${item.name}</div>
@@ -107,6 +117,7 @@ function render() {
                     <button class="qty-btn minus" data-key="${itemKey}">−</button>
                     <span class="item-count">${count}</span>
                     <button class="qty-btn plus" data-key="${itemKey}">+</button>
+                    <button class="nostock-btn${noStockBtnClass}" data-key="${itemKey}">−</button>
                 </div>
             `;
 
@@ -126,6 +137,7 @@ function setupEventListeners() {
             if (confirm('Are you sure you want to clear all items?')) {
                 counts = {};
                 manualChecks = {};
+                noStock = {};
                 saveState();
                 render();
                 showToast('All items cleared');
@@ -166,6 +178,29 @@ function setupEventListeners() {
             } else {
                 e.target.classList.remove('active');
                 nameEl.classList.remove('is-active');
+            }
+
+            // Trigger small vibration on mobile
+            if (navigator.vibrate) navigator.vibrate(5);
+            return;
+        }
+
+        // No Stock button handler
+        if (e.target.classList.contains('nostock-btn')) {
+            const key = e.target.dataset.key;
+            noStock[key] = !noStock[key];
+
+            if (!noStock[key]) {
+                delete noStock[key]; // Cleanup
+            }
+
+            saveState();
+
+            // Optimistic DOM update
+            if (noStock[key]) {
+                e.target.classList.add('active');
+            } else {
+                e.target.classList.remove('active');
             }
 
             // Trigger small vibration on mobile
@@ -243,6 +278,11 @@ function clearCategory(categoryName) {
             delete manualChecks[key];
         }
     });
+    Object.keys(noStock).forEach(key => {
+        if (key.startsWith(prefix)) {
+            delete noStock[key];
+        }
+    });
     saveState();
     render();
     showToast(`${categoryName} cleared`);
@@ -259,12 +299,14 @@ function generateMessage() {
             const key = `${cat.category}|${item.name}`;
             const count = counts[key] || 0;
             const isChecked = manualChecks[key] || false;
+            const isNoStock = noStock[key] || false;
+            const noStockSuffix = isNoStock ? ' (_No Stock_)' : '';
 
             if (count > 0) {
-                categoryLines.push(`${item.name} - ${count}`);
+                categoryLines.push(`${item.name} - ${count}${noStockSuffix}`);
                 hasItems = true;
             } else if (isChecked) {
-                categoryLines.push(`Need ${item.name}`);
+                categoryLines.push(`Need ${item.name}${noStockSuffix}`);
                 hasItems = true;
             }
         });
