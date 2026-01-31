@@ -65,6 +65,34 @@ body {
     /*text-transform: uppercase;*/
 }
 
+.mode-toggle {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.mode-btn {
+    padding: 8px 20px;
+    border: none;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    background: #E5E5EA;
+    color: var(--text-secondary);
+    transition: all 0.2s ease;
+}
+
+.mode-btn.active {
+    background: var(--text-primary);
+    color: white;
+}
+
+.mode-btn:active {
+    transform: scale(0.95);
+}
+
 /* Inventory List */
 .inventory-container {
     padding: var(--spacing-md);
@@ -199,6 +227,11 @@ body {
 
 .nostock-btn:active {
     transform: scale(0.95);
+}
+
+.nostock-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
 }
 
 .qty-btn {

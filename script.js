@@ -3,9 +3,11 @@
 let counts = {};
 let manualChecks = {};
 let noStock = {};
+let messageMode = 'order'; // 'order' or 'received'
 const STORAGE_KEY = 'inventory_counts_v1';
 const CHECKS_KEY = 'inventory_checks_v1';
 const NOSTOCK_KEY = 'inventory_nostock_v1';
+const MODE_KEY = 'inventory_mode_v1';
 
 // DOM Elements
 const container = document.getElementById('inventory-container');
@@ -16,10 +18,13 @@ const copyBtn = document.getElementById('copy-btn');
 const messagePreview = document.getElementById('message-preview');
 const toast = document.getElementById('toast');
 const clearAllBtn = document.getElementById('clear-all-btn');
+const modeOrderBtn = document.getElementById('mode-order');
+const modeReceivedBtn = document.getElementById('mode-received');
 
 // Initialize
 function init() {
     loadState();
+    updateModeUI();
     render();
     setupEventListeners();
 }
@@ -39,11 +44,16 @@ function loadState() {
         if (storedNoStock) {
             noStock = JSON.parse(storedNoStock);
         }
+        const storedMode = localStorage.getItem(MODE_KEY);
+        if (storedMode) {
+            messageMode = storedMode;
+        }
     } catch (e) {
         console.error("Failed to load state", e);
         counts = {};
         manualChecks = {};
         noStock = {};
+        messageMode = 'order';
     }
 }
 
@@ -52,6 +62,7 @@ function saveState() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(counts));
     localStorage.setItem(CHECKS_KEY, JSON.stringify(manualChecks));
     localStorage.setItem(NOSTOCK_KEY, JSON.stringify(noStock));
+    localStorage.setItem(MODE_KEY, messageMode);
 }
 
 // Category Background Colors
@@ -109,6 +120,7 @@ function render() {
             const activeClass = isActive ? ' is-active' : '';
             const checkBtnClass = isActive ? ' active' : '';
             const noStockBtnClass = isNoStock ? ' active' : '';
+            const noStockDisabled = messageMode === 'received' ? 'disabled' : '';
 
             row.innerHTML = `
                 <div class="item-name${activeClass}">${item.name}</div>
@@ -117,7 +129,7 @@ function render() {
                     <button class="qty-btn minus" data-key="${itemKey}">−</button>
                     <span class="item-count">${count}</span>
                     <button class="qty-btn plus" data-key="${itemKey}">+</button>
-                    <button class="nostock-btn${noStockBtnClass}" data-key="${itemKey}">−</button>
+                    <button class="nostock-btn${noStockBtnClass}" data-key="${itemKey}" ${noStockDisabled}>−</button>
                 </div>
             `;
 
@@ -125,6 +137,27 @@ function render() {
         });
 
         container.appendChild(categoryGroup);
+    });
+}
+
+// Update Mode UI
+function updateModeUI() {
+    if (messageMode === 'order') {
+        modeOrderBtn.classList.add('active');
+        modeReceivedBtn.classList.remove('active');
+    } else {
+        modeOrderBtn.classList.remove('active');
+        modeReceivedBtn.classList.add('active');
+    }
+
+    // Enable/disable No Stock buttons based on mode
+    const noStockButtons = document.querySelectorAll('.nostock-btn');
+    noStockButtons.forEach(btn => {
+        if (messageMode === 'received') {
+            btn.disabled = true;
+        } else {
+            btn.disabled = false;
+        }
     });
 }
 
@@ -142,6 +175,23 @@ function setupEventListeners() {
                 render();
                 showToast('All items cleared');
             }
+        });
+    }
+
+    // Mode Toggle Buttons
+    if (modeOrderBtn) {
+        modeOrderBtn.addEventListener('click', () => {
+            messageMode = 'order';
+            saveState();
+            updateModeUI();
+        });
+    }
+
+    if (modeReceivedBtn) {
+        modeReceivedBtn.addEventListener('click', () => {
+            messageMode = 'received';
+            saveState();
+            updateModeUI();
         });
     }
 
@@ -291,6 +341,17 @@ function clearCategory(categoryName) {
 function generateMessage() {
     let messageParts = [];
 
+    // Add header based on mode
+    if (messageMode === 'order') {
+        messageParts.push('*Bar Inventory*');
+        messageParts.push('Items Needed:');
+        messageParts.push('');
+    } else {
+        messageParts.push('*Bar Inventory*');
+        messageParts.push('Items Received');
+        messageParts.push('');
+    }
+
     inventoryData.forEach(cat => {
         let hasItems = false;
         let categoryLines = [];
@@ -312,17 +373,21 @@ function generateMessage() {
         });
 
         if (hasItems) {
-            messageParts.push(`*${cat.category}*`);
-            messageParts.push(...categoryLines);
-            messageParts.push('------------------------'); // Separator
+            // In 'order' mode, include category names. In 'received' mode, skip them.
+            if (messageMode === 'order') {
+                messageParts.push(`*${cat.category}*`);
+                messageParts.push(...categoryLines);
+                messageParts.push('------------------------'); // Separator
+            } else {
+                // Just add the items without category header
+                messageParts.push(...categoryLines);
+            }
         }
     });
 
-    if (messageParts.length === 0) {
+    if (messageParts.length === 3) { // Only header, no items
         messagePreview.value = "No items selected.";
     } else {
-        // Remove last separator if desired, or keep it.
-        // Let's keep it clean: join with newlines.
         messagePreview.value = messageParts.join('\n');
     }
 
